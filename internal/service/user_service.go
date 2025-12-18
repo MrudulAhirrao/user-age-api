@@ -6,7 +6,7 @@ import (
 	db "user-age-api/db/sqlc"
 	"user-age-api/internal/models"
 
-	"github.com/jackc/pgx/v5/pgtype" // <--- Added Import
+	"github.com/jackc/pgx/v5/pgtype" 
 )
 
 type UserService struct {
@@ -23,7 +23,7 @@ func (s *UserService) CreateUser(ctx context.Context, req models.CreateUserReque
 		return models.UserResponse{}, err
 	}
 
-	// FIX: Wrap time.Time into pgtype.Date
+	
 	user, err := s.queries.CreateUser(ctx, db.CreateUserParams{
 		Name: req.Name,
 		Dob:  pgtype.Date{Time: parsedDob, Valid: true}, 
@@ -41,7 +41,7 @@ func (s *UserService) CreateUser(ctx context.Context, req models.CreateUserReque
 }
 
 func (s *UserService) GetUser(ctx context.Context, id int32) (models.UserResponse, error) {
-	user, err := s.queries.GetUser(ctx, id)
+	user, err := s.queries.GetUserByID(ctx, id)
 	if err != nil {
 		return models.UserResponse{}, err
 	}
@@ -82,7 +82,7 @@ func (s *UserService) UpdateUser(ctx context.Context, id int32, req models.Creat
 		return models.UserResponse{}, err
 	}
 
-	// FIX: Wrap time.Time into pgtype.Date
+	
 	user, err := s.queries.UpdateUser(ctx, db.UpdateUserParams{
 		ID:   id,
 		Name: req.Name,

@@ -11,8 +11,13 @@ import (
 type Querier interface {
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteUser(ctx context.Context, id int32) error
-	GetUser(ctx context.Context, id int32) (User, error)
-	ListUsers(ctx context.Context) ([]User, error)
+	GetUserByEmail(ctx context.Context, email string) (User, error)
+	GetUserByID(ctx context.Context, id int32) (User, error)
+	ListUsers(ctx context.Context) ([]ListUsersRow, error)
+	// UPDATE users
+	// SET name = $2, dob = $3
+	// WHERE id = $1
+	// RETURNING id, name, dob;
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 }
 
