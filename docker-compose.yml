@@ -1,0 +1,25 @@
+version: '3.8'
+services:
+  # We keep this here so Docker knows about the DB, 
+  # but since it's already running, Docker won't touch it.
+  db:
+    image: postgres:alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=userdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # This is the NEW part we need
+  redis:
+    image: redis:alpine
+    restart: always
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:

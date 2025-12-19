@@ -3,7 +3,8 @@ package main
 import (
 	"context"
 	"log"
-	
+	"time"
+	myredis "user-age-api/internal/redis"
 	"user-age-api/config"
 	"user-age-api/db/sqlc"
 	"user-age-api/internal/handler"
@@ -34,18 +35,29 @@ func main() {
 	authHandler := handler.NewAuthHandler(authService,zapLogger)
 
 
+	redisClient,err := myredis.NewRedisClient(cfg.RedisURL,zapLogger)
+
+	if err != nil{
+		zapLogger.Fatal("Could Not Connect to Redis",zap.Error(err))
+	}
+	defer redisClient.Close()
+
+
 	app := fiber.New(fiber.Config{
 		ErrorHandler: middleware.ErrorHandler,
 	})
+
+
 
 	app.Use(middleware.RequestIDMiddleware())
 	app.Use(logger.New(logger.Config{
 		Format:"[${time}] ${locals:request_id} ${status} - ${method} ${path}\n",
 	}))
 
+	
 	authapi := app.Group("/auth")
 	authapi.Post("/signup", authHandler.Signup)
-	authapi.Post("/login",authHandler.Login)
+	authapi.Post("/login",middleware.RateLimitMiddleware(redisClient, 5, 60*time.Second),authHandler.Login)
 	api := app.Group("/users")
 	api.Use(middleware.AuthMiddleware(cfg.JWTSecret))
 	api.Put("/:id/profile",authHandler.UpdateProfile)

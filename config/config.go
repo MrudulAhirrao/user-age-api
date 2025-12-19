@@ -1,16 +1,24 @@
 package config
 
-import "os"
+import (
+	"log"
+	"os"
+)
 
 type Config struct {
 	DBURL     string
 	JWTSecret string
+	RedisURL  string
 }
+	
 
 func LoadConfig() *Config {
+	redisUrl := os.Getenv("REDIS_URL")
+    log.Println("🔍 DEBUG: Loaded REDIS_URL:", redisUrl)
 	return &Config{
 		DBURL:     getEnv("DATABASE_URL", "postgres://user:secret@localhost:5432/userdb?sslmode=disable"),
 		JWTSecret: getEnv("JWT_SECRET", ""), // Load from ENV
+		RedisURL: "redis://localhost:6379",
 	}
 }
 
