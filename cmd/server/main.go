@@ -4,14 +4,17 @@ import (
 	"context"
 	"log"
 	"time"
-	myredis "user-age-api/internal/redis"
 	"user-age-api/config"
 	"user-age-api/db/sqlc"
 	"user-age-api/internal/handler"
-	"user-age-api/internal/service"
 	"user-age-api/internal/middleware"
+	myredis "user-age-api/internal/redis"
+	"user-age-api/internal/service"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	// "google.golang.org/grpc/health"
+
 	// "github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
@@ -43,6 +46,8 @@ func main() {
 	defer redisClient.Close()
 
 
+	healthHandler:= handler.NewHealthHandler(dbPool,redisClient)
+
 	app := fiber.New(fiber.Config{
 		ErrorHandler: middleware.ErrorHandler,
 	})
@@ -54,11 +59,11 @@ func main() {
 		Format:"[${time}] ${locals:request_id} ${status} - ${method} ${path}\n",
 	}))
 
-	
+	app.Get("/healthz",healthHandler.Check)
 	authapi := app.Group("/auth")
 	authapi.Post("/signup", authHandler.Signup)
 	authapi.Post("/login",middleware.RateLimitMiddleware(redisClient, 5, 60*time.Second),authHandler.Login)
-	api := app.Group("/users")
+	api := app.Group("/users",middleware.RateLimitMiddleware(redisClient, 100, 60*time.Second))
 	api.Use(middleware.AuthMiddleware(cfg.JWTSecret))
 	api.Put("/:id/profile",authHandler.UpdateProfile)
 	api.Get("/me",authHandler.GetMe)

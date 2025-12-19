@@ -1,25 +1,42 @@
 package config
 
 import (
-	"log"
 	"os"
+	"strconv"
+	"strings"
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
 	DBURL     string
 	JWTSecret string
 	RedisURL  string
+	AllowedOrigins []string
+	RateLimitLogin int
+	RateLimitGeneral int
 }
 	
 
 func LoadConfig() *Config {
-	redisUrl := os.Getenv("REDIS_URL")
-    log.Println("🔍 DEBUG: Loaded REDIS_URL:", redisUrl)
+	godotenv.Load()
 	return &Config{
 		DBURL:     getEnv("DATABASE_URL", "postgres://user:secret@localhost:5432/userdb?sslmode=disable"),
 		JWTSecret: getEnv("JWT_SECRET", ""), // Load from ENV
-		RedisURL: "redis://localhost:6379",
+		RedisURL: getEnv("REDIS_URL", "redis://localhost:6379"),
+		AllowedOrigins: strings.Split(getEnv("ALLOWED_ORIGINS", "*"), ","),
+		
+		// Parse Integers with defaults
+		RateLimitLogin:   getEnvAsInt("RATE_LIMIT_LOGIN", 5),
+		RateLimitGeneral: getEnvAsInt("RATE_LIMIT_GENERAL", 100),
 	}
+}
+
+func getEnvAsInt(key string, fallback int) int {
+	valStr := getEnv(key, "")
+	if val, err := strconv.Atoi(valStr); err == nil {
+		return val
+	}
+	return fallback
 }
 
 func getEnv(key, fallback string) string {
