@@ -70,3 +70,29 @@ func (h *AuthHandler) GetMe(c *fiber.Ctx) error{
 	}
 	return c.Status(200).JSON(user)
 }
+
+func (h*AuthHandler) UpdateProfile(c *fiber.Ctx) error{
+	paramID, err:= c.ParamsInt("id")
+	if err != nil{
+		return c.Status(400).JSON(fiber.Map{"error":"Invalid User ID"})
+	}
+	loggedUserID := c.Locals("user_id").(int32)
+
+	if int32(paramID) != loggedUserID{
+		return c.Status(403).JSON(fiber.Map{"error":"You Can Update Only Your Profile"})
+	}
+
+	var req service.UpdateProfileRequest
+	if err := c.BodyParser(&req); err != nil{
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid Request Body"})
+	}
+
+	req.UserID = int32(paramID)
+
+	err = h.service.UpdateProfile(c.Context(),req)
+	if err != nil{
+		h.logger.Error("Failed to Update the Profile", zap.Error(err))
+		return c.Status(500).JSON(fiber.Map{"error":"Failed to update profile"})
+	}
+	return c.Status(200).JSON(fiber.Map{"message":"Profile Updated Successfully."})
+}

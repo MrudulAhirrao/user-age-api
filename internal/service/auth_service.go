@@ -1,23 +1,30 @@
 package service
 
-import(
+import (
 	"context"
 	"time"
 	"user-age-api/db/sqlc"
 	"user-age-api/internal/models"
-	"golang.org/x/crypto/bcrypt"
-	"github.com/jackc/pgx/v5/pgtype"
+
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"golang.org/x/crypto/bcrypt"
 )
 
 
-type AuthService struct{
+type AuthService struct{ 
+	db *pgxpool.Pool
 	queries *db.Queries
 	jwtSecret string
 }
 
-func NewAuthService(q *db.Queries,secret string) *AuthService{
-	return &AuthService{queries: q,jwtSecret: secret,}
+func NewAuthService(pool *pgxpool.Pool,secret string) *AuthService{
+	return &AuthService{
+		db:	pool,        
+        queries:   db.New(pool), // We can generate queries directly from the pool
+        jwtSecret: secret,
+	}
 }
 
 

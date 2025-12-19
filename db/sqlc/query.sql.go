@@ -132,16 +132,23 @@ func (q *Queries) ListUsers(ctx context.Context) ([]ListUsersRow, error) {
 
 const updateUser = `-- name: UpdateUser :one
 
-UPDATE users
-SET name = $2, dob = $3, updated_at = CURRENT_TIMESTAMP
-WHERE id = $1
+UPDATE users 
+SET 
+  -- We use sqlc.arg(name) to force the Go struct field to be "Name"
+  name = COALESCE(NULLIF($1, ''), name), 
+  
+  -- We use sqlc.arg(dob) to force the Go struct field to be "Dob"
+  dob = COALESCE($2, dob),
+  
+  updated_at = NOW()
+WHERE id = $3
 RETURNING id, name, dob, email, password_hash, role, created_at, updated_at
 `
 
 type UpdateUserParams struct {
-	ID   int32       `json:"id"`
-	Name string      `json:"name"`
+	Name interface{} `json:"name"`
 	Dob  pgtype.Date `json:"dob"`
+	ID   int32       `json:"id"`
 }
 
 // UPDATE users
@@ -149,7 +156,7 @@ type UpdateUserParams struct {
 // WHERE id = $1
 // RETURNING id, name, dob;
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
-	row := q.db.QueryRow(ctx, updateUser, arg.ID, arg.Name, arg.Dob)
+	row := q.db.QueryRow(ctx, updateUser, arg.Name, arg.Dob, arg.ID)
 	var i User
 	err := row.Scan(
 		&i.ID,

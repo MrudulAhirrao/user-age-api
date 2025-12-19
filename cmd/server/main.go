@@ -11,7 +11,8 @@ import (
 	"user-age-api/internal/middleware"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/jackc/pgx/v5"
+	// "github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 )
 
@@ -21,14 +22,14 @@ func main() {
 	zapLogger, _ := zap.NewProduction()
 	defer zapLogger.Sync()
 
-	conn, err := pgx.Connect(context.Background(), cfg.DBURL)
+	dbPool, err := pgxpool.New(context.Background(), cfg.DBURL)
 	if err != nil {
 		zapLogger.Fatal("Unable to connect to database", zap.Error(err))
 	}
-	defer conn.Close(context.Background())
-	queries := db.New(conn)
+	defer dbPool.Close()
+	queries := db.New(dbPool)
 	userService := service.NewUserService(queries)
-	authService := service.NewAuthService(queries,cfg.JWTSecret)
+	authService := service.NewAuthService(dbPool,cfg.JWTSecret)
 	userHandler := handler.NewUserHandler(userService, zapLogger)
 	authHandler := handler.NewAuthHandler(authService,zapLogger)
 
@@ -47,6 +48,7 @@ func main() {
 	authapi.Post("/login",authHandler.Login)
 	api := app.Group("/users")
 	api.Use(middleware.AuthMiddleware(cfg.JWTSecret))
+	api.Put("/:id/profile",authHandler.UpdateProfile)
 	api.Get("/me",authHandler.GetMe)
 	api.Post("/", userHandler.CreateUser)
 	api.Get("/", userHandler.ListUsers)

@@ -8,6 +8,19 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Address struct {
+	ID         int32            `json:"id"`
+	UserID     int32            `json:"user_id"`
+	Line1      string           `json:"line1"`
+	Line2      pgtype.Text      `json:"line2"`
+	City       string           `json:"city"`
+	State      string           `json:"state"`
+	PostalCode string           `json:"postal_code"`
+	Country    string           `json:"country"`
+	CreatedAt  pgtype.Timestamp `json:"created_at"`
+	UpdatedAt  pgtype.Timestamp `json:"updated_at"`
+}
+
 type User struct {
 	ID           int32              `json:"id"`
 	Name         string             `json:"name"`
