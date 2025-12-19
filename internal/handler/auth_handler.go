@@ -31,7 +31,7 @@ func (h* AuthHandler) Login(c * fiber.Ctx) error{
 	}
 	token, err :=h.service.Login(c.Context(),req)
 	if err!=nil{
-		h.logger.Error("Login Failed", zap.Error(err))
+		
 		return c.Status(401).JSON(fiber.Map{"error": "Invalid Email or Password"})
 	}
 	return c.Status(200).JSON(fiber.Map{

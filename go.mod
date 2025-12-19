@@ -5,6 +5,8 @@ go 1.25.4
 require github.com/redis/go-redis/v9 v9.17.2
 
 require (
+	github.com/pingcap/errors v0.11.5-0.20250523034308-74f78ae071ee // indirect
+	go.uber.org/atomic v1.11.0 // indirect
 	golang.org/x/net v0.47.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251022142026-3a174f9686a8 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
@@ -31,11 +33,12 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
+	github.com/pingcap/tidb/pkg/parser v0.0.0-20251219090641-9ee409cc4ab0
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.51.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
-	go.uber.org/multierr v1.10.0 // indirect
+	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.1 // indirect
 	golang.org/x/crypto v0.46.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
