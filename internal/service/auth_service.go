@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
+	"user-age-api/internal/websocket"
 )
 
 
@@ -17,13 +18,15 @@ type AuthService struct{
 	db *pgxpool.Pool
 	queries *db.Queries
 	jwtSecret string
+	Hub *websocket.Hub
 }
 
-func NewAuthService(pool *pgxpool.Pool,secret string) *AuthService{
+func NewAuthService(pool *pgxpool.Pool,secret string, hub *websocket.Hub) *AuthService{
 	return &AuthService{
 		db:	pool,        
         queries:   db.New(pool), // We can generate queries directly from the pool
         jwtSecret: secret,
+		Hub: hub,
 	}
 }
 

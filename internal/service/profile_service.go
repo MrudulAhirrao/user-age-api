@@ -1,12 +1,14 @@
 package service
 
 import (
-    "context"
-    "errors"
-    "time"
+	"context"
+	"encoding/json"
+	"errors"
+	"time"
 
-    "github.com/jackc/pgx/v5/pgtype"
-    db "user-age-api/db/sqlc" 
+	db "user-age-api/db/sqlc"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // The Request format (JSON)
@@ -69,9 +71,26 @@ func (s *AuthService) UpdateProfile(ctx context.Context, req UpdateProfileReques
         PostalCode: req.Address.PostalCode,
         Country:    req.Address.Country,
     })
-    if err != nil {
-        return err
-    }
+    if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+    go func() {
+		type RealTimeMessage struct {
+			Type string      `json:"type"`
+			Data interface{} `json:"data"`
+		}
 
-    return tx.Commit(ctx)
+		payload := RealTimeMessage{
+			Type: "PROFILE_UPDATED",
+			Data: req, 
+		}
+
+		jsonBytes, err := json.Marshal(payload)
+		if err != nil {
+			return 
+		}
+		s.Hub.Broadcast <- jsonBytes
+	}()
+
+	return nil
 }

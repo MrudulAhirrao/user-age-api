@@ -14,6 +14,10 @@ import (
 	myredis "user-age-api/internal/redis"
 	"user-age-api/internal/service"
 
+	"user-age-api/internal/websocket" // ✅ Local Package (Your Hub)
+
+	// ✅ External Package (Aliased to avoid conflict)
+	fiberws "github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/recover"
@@ -35,8 +39,11 @@ func main() {
 	}
 	defer dbPool.Close()
 	queries := db.New(dbPool)
+
+	hub := websocket.NewHub()
+	go hub.Run()
 	userService := service.NewUserService(queries)
-	authService := service.NewAuthService(dbPool,cfg.JWTSecret)
+	authService := service.NewAuthService(dbPool,cfg.JWTSecret,hub)
 	userHandler := handler.NewUserHandler(userService, zapLogger)
 	authHandler := handler.NewAuthHandler(authService,zapLogger)
 
@@ -49,6 +56,7 @@ func main() {
 	defer redisClient.Close()
 
 
+	
 	healthHandler:= handler.NewHealthHandler(dbPool,redisClient)
 
 	app := fiber.New(fiber.Config{
@@ -68,6 +76,15 @@ func main() {
 	authapi.Post("/login",middleware.RateLimitMiddleware(redisClient, 5, 60*time.Second),authHandler.Login)
 	api := app.Group("/users",middleware.RateLimitMiddleware(redisClient, 100, 60*time.Second))
 	api.Use(middleware.AuthMiddleware(cfg.JWTSecret))
+
+	app.Get("/ws", func(c *fiber.Ctx) error {
+		// ✅ FIX: Use 'fiberws' alias here
+		if fiberws.IsWebSocketUpgrade(c) {
+			return c.Next()
+		}
+		return fiber.ErrUpgradeRequired
+	}, handler.ServeWS(hub))
+
 	api.Put("/:id/profile",authHandler.UpdateProfile)
 	api.Get("/me",authHandler.GetMe)
 	api.Post("/", userHandler.CreateUser)
