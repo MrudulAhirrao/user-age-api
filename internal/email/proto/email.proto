@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package email;
+
+option go_package = "internal/email/proto/emailpb";
+
+// EmailService defines the email sending service.
+service EmailService {
+	// SendActivationEmail sends an activation email to the specified recipient.
+	rpc SendActivationEmail(SendActivationEmailRequest) returns (SendActivationEmailResponse);
+}
+
+message SendActivationEmailRequest{
+	string email = 1; 
+	string activation_token = 2;
+}
+
+message SendActivationEmailResponse{
+	bool success = 1; 
+}

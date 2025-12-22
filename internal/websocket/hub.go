@@ -34,7 +34,7 @@ func (h *Hub) Run() {
 			h.mu.Lock()
 			if _, ok := h.Clients[client]; ok {
 				delete(h.Clients, client)
-				close(client.Send) // Changed to .Send (Capitalized)
+				close(client.Send) 
 			}
 			h.mu.Unlock()
 
@@ -42,7 +42,7 @@ func (h *Hub) Run() {
 			h.mu.Lock()
 			for client := range h.Clients {
 				select {
-				case client.Send <- message: // Changed to .Send
+				case client.Send <- message:
 				default:
 					close(client.Send)
 					delete(h.Clients, client)

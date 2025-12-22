@@ -55,7 +55,7 @@ func (c *Client) WritePump() {
 
 func (c *Client) ReadPump() {
 	defer func() {
-		c.Hub.Unregister <- c // Capitalized
+		c.Hub.Unregister <- c 
 		c.Conn.Close()
 	}()
 
