@@ -31,7 +31,9 @@ func (h* AuthHandler) Login(c * fiber.Ctx) error{
 	}
 	token, err :=h.service.Login(c.Context(),req)
 	if err!=nil{
-		
+		if err.Error() == "account not activated. please check your email" {
+			return c.Status(403).JSON(fiber.Map{"error": "Account not activated. Please check your email."})
+		}		
 		return c.Status(401).JSON(fiber.Map{"error": "Invalid Email or Password"})
 	}
 	return c.Status(200).JSON(fiber.Map{
@@ -95,4 +97,25 @@ func (h*AuthHandler) UpdateProfile(c *fiber.Ctx) error{
 		return c.Status(500).JSON(fiber.Map{"error":"Failed to update profile"})
 	}
 	return c.Status(200).JSON(fiber.Map{"message":"Profile Updated Successfully."})
+}
+
+// Add this method to your AuthHandler
+func (h *AuthHandler) Activate(c *fiber.Ctx) error {
+    // 1. Parse Request
+	var req struct {
+		Token string `json:"token"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid JSON"})
+	}
+
+    // 2. Call Service
+	err := h.service.ActivateAccount(c.Context(), req.Token)
+	if err != nil {
+        // If error, likely token is wrong
+		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+	}
+
+    // 3. Success
+	return c.Status(200).JSON(fiber.Map{"message": "Account activated successfully! Please login."})
 }

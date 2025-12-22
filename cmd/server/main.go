@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	
 	"user-age-api/config"
 	"user-age-api/db/sqlc"
 	"user-age-api/internal/handler"
@@ -14,7 +15,8 @@ import (
 	myredis "user-age-api/internal/redis"
 	"user-age-api/internal/service"
 
-	"user-age-api/internal/websocket" // ✅ Local Package (Your Hub)
+	"user-age-api/internal/websocket" 
+	emailClinet"user-age-api/internal/client/email"
 
 	// ✅ External Package (Aliased to avoid conflict)
 	fiberws "github.com/gofiber/contrib/websocket"
@@ -42,8 +44,17 @@ func main() {
 
 	hub := websocket.NewHub()
 	go hub.Run()
+
+	eClient,err := emailClinet.NewEmailClient("localhost:50051")
+	if err != nil{
+		log.Fatal("Could Not Connect to Email Service",err)
+	}
+	defer eClient.Close()
+
+	
+
 	userService := service.NewUserService(queries)
-	authService := service.NewAuthService(dbPool,cfg.JWTSecret,hub)
+	authService := service.NewAuthService(dbPool,cfg.JWTSecret,hub, eClient)
 	userHandler := handler.NewUserHandler(userService, zapLogger)
 	authHandler := handler.NewAuthHandler(authService,zapLogger)
 
@@ -74,6 +85,7 @@ func main() {
 	authapi := app.Group("/auth")
 	authapi.Post("/signup", authHandler.Signup)
 	authapi.Post("/login",middleware.RateLimitMiddleware(redisClient, 5, 60*time.Second),authHandler.Login)
+	authapi.Post("/activate", authHandler.Activate)
 	api := app.Group("/users",middleware.RateLimitMiddleware(redisClient, 100, 60*time.Second))
 	api.Use(middleware.AuthMiddleware(cfg.JWTSecret))
 
