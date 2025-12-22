@@ -14,6 +14,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -24,15 +25,17 @@ type AuthService struct{
 	jwtSecret string
 	Hub *websocket.Hub
 	emailClient *emailClient.EmailClinet
+	redisClient *redis.Client
 }
 
-func NewAuthService(pool *pgxpool.Pool,secret string, hub *websocket.Hub, eClient *emailClient.EmailClinet) *AuthService{
+func NewAuthService(pool *pgxpool.Pool,secret string, hub *websocket.Hub, eClient *emailClient.EmailClinet, rClient *redis.Client) *AuthService{
 	return &AuthService{
 		db:	pool,        
         queries:   db.New(pool), // We can generate queries directly from the pool
         jwtSecret: secret,
 		Hub: hub,
 		emailClient: eClient,
+		redisClient: rClient,
 	}
 }
 
@@ -136,5 +139,46 @@ func (s *AuthService) ActivateAccount(ctx context.Context, token string) error {
 	if err != nil {
 		return errors.New("invalid or expired activation token")
 	}
+	return nil
+}
+
+func (s *AuthService) ResendActivationEmail(ctx context.Context, email string) error {
+	limitKey := "resend_limit:" + email      
+	cooldownKey := "resend_cooldown:" + email 
+	if s.redisClient.Exists(ctx, cooldownKey).Val() > 0 {
+		ttl := s.redisClient.TTL(ctx, cooldownKey).Val()
+		return errors.New("please wait " + ttl.Round(time.Second).String() + " before retrying")
+	}
+	user, err := s.queries.GetUserByEmail(ctx, email)
+	if err != nil {
+		return errors.New("user not found")
+	}
+	if user.IsActive {
+		return errors.New("account already active")
+	}
+
+	count := s.redisClient.Incr(ctx, limitKey).Val()
+	if count == 1 {
+		s.redisClient.Expire(ctx, limitKey, 24*time.Hour) 
+	}
+
+	var waitTime time.Duration
+	switch count {
+	case 1:
+		waitTime = 1 * time.Minute
+	case 2:
+		waitTime = 5 * time.Minute
+	case 3:
+		waitTime = 20 * time.Minute
+	default:
+		waitTime = 24 * time.Hour 
+	}
+
+	go func() {
+		_ = s.emailClient.SendActivationEmail(user.Email, user.ActivationToken.String)
+	}()
+
+	s.redisClient.Set(ctx, cooldownKey, "blocked", waitTime)
+
 	return nil
 }

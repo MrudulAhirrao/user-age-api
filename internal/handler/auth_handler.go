@@ -119,3 +119,19 @@ func (h *AuthHandler) Activate(c *fiber.Ctx) error {
     // 3. Success
 	return c.Status(200).JSON(fiber.Map{"message": "Account activated successfully! Please login."})
 }
+
+func (h *AuthHandler) ResendActivationEmail (c *fiber.Ctx) error{
+	var req struct {
+		Email string `json:"email"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid JSON"})
+	}
+
+	err := h.service.ResendActivationEmail(c.Context(), req.Email)
+	if err != nil {
+		return c.Status(429).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.Status(200).JSON(fiber.Map{"message": "Activation email sent (if user exists)"})
+}
